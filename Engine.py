@@ -119,23 +119,31 @@ class Engine:
         # return None
 
     def sp(self):
-        query = '''select distinct ?p ?o (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
+        query = '''
+        select *
         where
         {{
+            filter(?measure = max(?measure))
             {{
-                {s_selector}
-                ?o ?p ?s .
-                values ?s {{ {positive} }}
-            }}
-            union
-            {{
-                {t_selector}
-                ?o ?p ?t .
-                values ?t {{ {negative} }}
+                select distinct ?p ?o (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
+                where
+                {{
+                    {{
+                        {s_selector}
+                        ?o ?p ?s .
+                        values ?s {{ {positive} }}
+                    }}
+                    union
+                    {{
+                        {t_selector}
+                        ?o ?p ?t .
+                        values ?t {{ {negative} }}
+                    }}
+                }}
+                group by ?p ?o
+                order by desc(?measure)
             }}
         }}
-        group by ?p ?o
-        order by desc(?measure)
         '''.format_map(self._args())
         for row in self.graph.select(query):
             s = SPSelector(row['o'], row['p'])
@@ -144,45 +152,53 @@ class Engine:
                 yield s
 
     def comp(self):
-        query = '''
-            select ?p ?l ?measure
-            where
-            {{
-                filter(?measure=max(?measure))
+        args = self._args()
+        for op in '<=', '>=':
+            args['op'] = op
+            query = '''
+                select ?p ?l ?measure
+                where
                 {{
-                    select distinct ?p ?l (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
-                    where
+                    filter(?measure=max(?measure))
                     {{
+                        select distinct ?p ?l (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
+                        where
                         {{
-                            {s_selector}
-                            ?s ?p ?xl.
-                            values ?s {{ {positive} }}
-                            filter(isLiteral(?xl))
-                        }}
-                        union
-                        {{
-                            {t_selector}
-                            ?t ?p ?xl.
-                            values ?t {{ {negative} }}
-                            filter(isLiteral(?xl))
-                        }}
-                        filter(?xl<=?l)
-                        {{
-                            select distinct ?p ?l
-                            where
                             {{
                                 {s_selector}
-                                ?s ?p ?l.
+                                ?s ?p ?xl.
                                 values ?s {{ {positive} }}
-                                filter(isLiteral(?l))
+                                filter(isLiteral(?xl))
+                            }}
+                            union
+                            {{
+                                {t_selector}
+                                ?t ?p ?xl.
+                                values ?t {{ {negative} }}
+                                filter(isLiteral(?xl))
+                            }}
+                            filter(?xl {op} ?l)
+                            {{
+                                select distinct ?p ?l
+                                where
+                                {{
+                                    {s_selector}
+                                    ?s ?p ?l.
+                                    values ?s {{ {positive} }}
+                                    filter(isLiteral(?l))
+                                }}
                             }}
                         }}
+                        group by ?p ?l
                     }}
-                    group by ?p ?l
                 }}
-            }}
-        '''.format_map(self._args())
-        print(query)
+            '''.format_map(args)
+            # print(query)
+            for row in self.graph.select(query):
+                s = FilterOpSelector(row['p'], op, row['l'])
+                if s not in self.hypothesis:
+                    # print(row)
+                    yield s
 
     def _new_examples(self, base, new_selector: Selector):
         args = {
@@ -240,8 +256,9 @@ class Engine:
         result = [row for row in self.graph.select(query)]
         assert len(result) == 1
         measure = result[0]['measure'].value
+        # print(query)
         print("measure={}".format(measure))
-        return measure > .95
+        return measure > .99
 
     def label_examples(self, lab_positive, lab_negative):
         self.hypothesis_cm = ContingencyMatrix()
@@ -272,13 +289,15 @@ class Engine:
                 raise Exception("I can not make an empty hypothesis even more general!")
         restarted = False
         while True:
-            for cand in itertools.chain(self.po(), self.sp()):
+            for cand in itertools.chain(self.po(), self.sp(), self.comp()):
                 self.hypothesis.append(cand)
                 print("#positive = {} #negative = {}".format(len(self.positive), len(self.negative)))
                 print("Refined hypothesis is:")
                 for item in self.hypothesis:
                     print("\t", item)
                 self.ex_positive, self.ex_negative = self.new_examples()
+                if self.hypothesis_good_enough():
+                    return
                 if len(self.ex_positive) > 0 and len(self.ex_negative) > 0:
                     return
                 while True:

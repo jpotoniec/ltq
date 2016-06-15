@@ -3,9 +3,7 @@ from Engine import Engine
 from rdflib import URIRef
 from SparqlGraph import SparqlGraph
 from pprint import pprint
-
-
-
+from EngineTests import urize, evaluate
 
 
 def wrap(line, prefix=""):
@@ -75,7 +73,6 @@ def main():
     graph = SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql')
 
     eng = Engine(graph, positive, negative)
-    ctr = FeatureStats()
     while not eng.hypothesis_good_enough():
         print("================")
         print("Current selectors:", eng.hypothesis)
@@ -105,4 +102,6 @@ def main():
 
 
 if __name__ == '__main__':
+    # from EngineTests import EngineTests
+    # EngineTests().test_capitals_of_EU()
     main()

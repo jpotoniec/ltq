@@ -50,6 +50,9 @@ def run(positive, negative, target):
 
 
 class EngineTests(unittest.TestCase):
+    def setUp(self):
+        pass
+
     def test_capitals_of_EU(self):
         target = [
             'http://dbpedia.org/resource/Athens',
@@ -91,18 +94,40 @@ class EngineTests(unittest.TestCase):
         result = run(positive, negative, target)
         self.assertAlmostEqual(result['f1'], 1)
 
-    #ten przykład jest za mały, bo wymagam przynajmniej 10 zaetykietowanych przykładów
-    # def test_Apollo11(self):
-    #     target = ['http://dbpedia.org/resource/Neil_Armstrong',
-    #               'http://dbpedia.org/resource/Buzz_Aldrin',
-    #               'http://dbpedia.org/resource/Michael_Collins_(astronaut)'
-    #               ]
-    #     positive = ['http://dbpedia.org/resource/Neil_Armstrong', 'http://dbpedia.org/resource/Buzz_Aldrin']
-    #     negative = ['http://dbpedia.org/resource/Clive_Owen',
-    #                 'http://dbpedia.org/resource/Paul_Girvan_(judge)',
-    #                 'http://dbpedia.org/resource/Phil_Lewis_(baseball)']
-    #     result = run(positive, negative, target)
-    #     self.assertAlmostEqual(result['f1'], 1)
+    def test_Polish_cities_above_200k_citizens(self):
+        positive = urize(['http://dbpedia.org/resource/Gdańsk',
+                          'http://dbpedia.org/resource/Kraków',
+                          'http://dbpedia.org/resource/Lublin',
+                          'http://dbpedia.org/resource/Poznań',
+                          'http://dbpedia.org/resource/Toruń',
+                          'http://dbpedia.org/resource/Bydgoszcz'
+                          ])
+        negative = urize([
+            'http://dbpedia.org/resource/Lesser_Poland_Voivodeship',
+            'http://dbpedia.org/resource/Silesian_Voivodeship',
+            'http://dbpedia.org/resource/Masuria'
+        ])
+        # http://stat.gov.pl/statystyka-regionalna/rankingi-statystyczne/miasta-najwieksze-pod-wzgledem-liczby-ludnosci/, co najmniej 200 tys
+        target = urize([
+            'http://dbpedia.org/resource/Warsaw',
+            'http://dbpedia.org/resource/Kraków',
+            'http://dbpedia.org/resource/Łódź',
+            'http://dbpedia.org/resource/Wrocław',
+            'http://dbpedia.org/resource/Poznań',
+            'http://dbpedia.org/resource/Gdańsk',
+            'http://dbpedia.org/resource/Szczecin',
+            'http://dbpedia.org/resource/Bydgoszcz',
+            'http://dbpedia.org/resource/Lublin',
+            'http://dbpedia.org/resource/Katowice',
+            'http://dbpedia.org/resource/Białystok',
+            'http://dbpedia.org/resource/Gdynia',
+            'http://dbpedia.org/resource/Częstochowa',
+            'http://dbpedia.org/resource/Radom',
+            'http://dbpedia.org/resource/Sosnowiec',
+            'http://dbpedia.org/resource/Toruń',
+        ])
+        result = run(positive, negative, target)
+        self.assertAlmostEqual(result['f1'], 1)
 
 
 if __name__ == '__main__':

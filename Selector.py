@@ -32,6 +32,16 @@ class SPSelector(Selector):
         super().__init__("{} {} {}.".format(s.n3(), p.n3(), Selector.placeholder))
 
 
+class FilterOpSelector(Selector):
+    counter = 0
+
+    def __init__(self, p, op, l):
+        FilterOpSelector.counter += 1
+        super().__init__(
+            "{0} {1} ?anon{2}. filter(?anon{2} {3} {4}).".format(Selector.placeholder, p.n3(), FilterOpSelector.counter,
+                                                                op, l.n3()))
+
+
 class FilterNotExistsSelector(Selector):
     def __init__(self, nested: Selector):
         super().__init__("filter not exists {{ {} }}".format(nested._text))
