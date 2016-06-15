@@ -86,6 +86,7 @@ class Engine:
                     }}
                 }}
                 group by ?p ?o
+                having (?measure > .5)
                 order by desc(?measure)
             }}
         }}
@@ -141,6 +142,7 @@ class Engine:
                     }}
                 }}
                 group by ?p ?o
+                having (?measure > .5)
                 order by desc(?measure)
             }}
         }}
@@ -190,6 +192,7 @@ class Engine:
                             }}
                         }}
                         group by ?p ?l
+                        having (?measure > .5)
                     }}
                 }}
             '''.format_map(args)
