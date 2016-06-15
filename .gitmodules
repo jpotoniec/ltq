@@ -1,0 +1,3 @@
+[submodule "pycnic"]
+	path = pycnic
+	url = https://github.com/nullism/pycnic
