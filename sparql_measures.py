@@ -69,6 +69,25 @@ def evaluate(graph, query, target):
             'unexpected': unexpected}
 
 
+def from_wikipedia(graph, links):
+    result = []
+    import re
+    r = re.compile('^https://', re.I)
+    for link in links:
+        link = r.sub('http://', link)
+        query = '''
+        select distinct ?uri
+        where
+        {{
+            ?uri foaf:isPrimaryTopicOf {}.
+        }}
+        '''.format(URIRef(link).n3())
+        uri = [row['uri'] for row in graph.select(query)]
+        assert len(uri) == 1, (uri, link)
+        result.append(uri[0])
+    return result
+
+
 def main():
     graph = SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql')
 

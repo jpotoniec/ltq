@@ -129,6 +129,60 @@ class EngineTests(unittest.TestCase):
         result = run(positive, negative, target)
         self.assertAlmostEqual(result['f1'], 1)
 
+# miasta mające powyżej 20000 os/km2 wg https://en.wikipedia.org/wiki/List_of_cities_by_population_density
+# nie działa, bo w dbpedii nie ma takich danych, np http://dbpedia.org/resource/L'Hospitalet_de_Llobregat ma jako density wpisane auto, bo wikipedia je sama wylicza
+#     target = ['https://en.wikipedia.org/wiki/Manila',
+#               'https://en.wikipedia.org/wiki/Pateros,_Metro_Manila',
+#               'https://en.wikipedia.org/wiki/Caloocan',
+#               'https://en.wikipedia.org/wiki/Levallois-Perret',
+#               'https://en.wikipedia.org/wiki/Le_Pré-Saint-Gervais',
+#               'https://en.wikipedia.org/wiki/Neapoli,_Thessaloniki',
+#               'https://en.wikipedia.org/wiki/Chennai',
+#               'https://en.wikipedia.org/wiki/Vincennes',
+#               'https://en.wikipedia.org/wiki/Delhi',
+#               'https://en.wikipedia.org/wiki/Saint-Mandé',
+#               'https://en.wikipedia.org/wiki/Dhaka',
+#               'https://en.wikipedia.org/wiki/Bally,_Howrah',
+#               'https://en.wikipedia.org/wiki/Kolkata',
+#               'https://en.wikipedia.org/wiki/Bnei_Brak',
+#               'https://en.wikipedia.org/wiki/Saint-Josse-ten-Noode',
+#               'https://en.wikipedia.org/wiki/Montrouge',
+#               'https://en.wikipedia.org/wiki/Malabon',
+#               'https://en.wikipedia.org/wiki/Guttenberg,_New_Jersey',
+#               'https://en.wikipedia.org/wiki/Pasig',
+#               'https://en.wikipedia.org/wiki/Paris',
+#               'https://en.wikipedia.org/wiki/Mislata',
+#               'https://en.wikipedia.org/wiki/Macau',
+#               'https://en.wikipedia.org/wiki/Kallithea',
+#               'https://en.wikipedia.org/wiki/Nea_Smyrni',
+#               'https://en.wikipedia.org/wiki/Howrah',
+#               'https://en.wikipedia.org/wiki/Mumbai',
+#               'https://en.wikipedia.org/wiki/Pasay',
+#               'https://en.wikipedia.org/wiki/San_Juan,_Metro_Manila',
+#               'https://en.wikipedia.org/wiki/Colombo',
+#               'https://en.wikipedia.org/wiki/L\'Hospitalet_de_Llobregat',
+#               'https://en.wikipedia.org/wiki/Union_City,_New_Jersey'
+#               ]
+#
+#
+# # positive = [
+# #     'https://en.wikipedia.org/wiki/Manila',
+# #     'https://en.wikipedia.org/wiki/Paris',
+# #     'https://en.wikipedia.org/wiki/Union_City,_New_Jersey',
+# #     'https://en.wikipedia.org/wiki/Dhaka',
+# #     'https://en.wikipedia.org/wiki/Bally,_Howrah',
+# #     'https://en.wikipedia.org/wiki/Kolkata',
+# #     'https://en.wikipedia.org/wiki/Bnei_Brak',
+# # ]
+# positive = target.copy()
+# negative = [
+#     'https://en.wikipedia.org/wiki/Makati',
+#     'https://en.wikipedia.org/wiki/West_New_York,_New_Jersey',
+#     'https://en.wikipedia.org/wiki/Bydgoszcz'
+# ]
+# target = from_wikipedia(graph, target)
+#     positive = from_wikipedia(graph, positive)
+#     negative = from_wikipedia(graph, negative)
 
 if __name__ == '__main__':
     unittest.main()
