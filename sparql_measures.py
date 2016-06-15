@@ -1,10 +1,8 @@
-from SparqlGraph import SparqlGraph
-from rdflib import URIRef
-from pprint import pprint
-import random
 import itertools
-import pickle
-import gzip
+from Engine import Engine
+from rdflib import URIRef
+from SparqlGraph import SparqlGraph
+from pprint import pprint
 
 
 def urize(strings):
@@ -14,147 +12,12 @@ def urize(strings):
     return result
 
 
-def find_best_properties(graph, positive, negative):
-    if len(positive) > 100:
-        positive = random.sample(positive, 100)
-    if len(negative) > 100:
-        negative = random.sample(negative, 100)
-    n_pos = len(positive)
-    n_neg = len(negative)
-    pos = " ".join([u.n3() for u in positive])
-    neg = " ".join([u.n3() for u in negative])
-    query = 'select distinct ?p  (count(distinct ?s)/' + str(n_pos) + '-count(distinct ?t)/' + str(n_neg) + ' as ?m)' + '''
-where
-{
-  {
-  ?s ?p [].
-  values ?s {''' + pos + '''
-  }
-         filter(isIRI(?p))
-         }
-  union
-  {
-    ?t ?p [].
-    values ?t { ''' + neg + '''
-  }
-         filter(isIRI(?p))
-    }
-}
-group by ?p
-having (?m > .75)
-order by desc(?m)
-'''
-    print(query)
-    properties = []
-    for row in graph.select(query):
-        properties.append(row['p'])
-        # print(row)
-    return properties[0]
-
-
-def find_best_po(graph, positive, negative, prefix):
-    if len(positive) > 100:
-        positive = random.sample(positive, 100)
-    if len(negative) > 100:
-        negative = random.sample(negative, 100)
-    n_pos = len(positive)
-    n_neg = len(negative)
-    pos = " ".join([u.n3() for u in positive])
-    bgp = ""
-    for p, o in prefix:
-        bgp += "?s {} {} .\n".format(p.n3(), o.n3())
-    if n_neg > 0:
-        neg = " ".join([u.n3() for u in negative])
-        query = 'select distinct ?p ?o (count(distinct ?s)/' + str(n_pos) + '-count(distinct ?t)/' + str(
-            n_neg) + ' as ?m)' + '''
-    where
-    {
-      { ''' + bgp + '''
-      ?s ?p ?o.
-      values ?s {''' + pos + '''
-      }
-             filter(isIRI(?p))
-             }
-      union
-      {
-        ?t ?p ?o.
-        values ?t { ''' + neg + '''
-      }
-             filter(isIRI(?p))
-        }
-    }
-    group by ?p ?o
-    having (?m > .75)
-    order by desc(?m)
-    '''
-    else:
-        query = 'select distinct ?p ?o (count(distinct ?s)/' + str(n_pos) + ' as ?m)' + '''
-    where
-    {
-      {''' + bgp + '''
-      ?s ?p ?o.
-      values ?s {''' + pos + '''
-      }
-             filter(isIRI(?p))
-             }
-    }
-    group by ?p ?o
-    having (?m > .75)
-    order by desc(?m)
-    '''
-    result = graph.select(query)
-    query = ""
-    for row in result:
-        query += "({} {})".format(row['p'].n3(), row['o'].n3())
-    query = '''
-    select ?p ?o (count(distinct ?s) as ?c)
-where
-{
-  ?s ?p ?o.
-  values (?p ?o) {''' + query + '''
-  }
-}
-group by ?p ?o
-order by asc(?c)'''
-    result = []
-    for row in graph.select(query):
-        result.append((row['p'], row['o']))
-    for item in result:
-        if item not in prefix:
-            return item
-    return None, None
-
-
-def pick_examples(graph, p, o, positive, negative):
-    uris = " ".join([u.n3() for u in itertools.chain(positive, negative)])
-    p = p.n3()
-    if o is not None:
-        o = o.n3()
-    else:
-        o = "[]"
-    x = p + " " + o
-    query = '''
-    select distinct ?uri ?comment
-where
-{
-  ?uri ''' + x + ''' .
-  optional {?uri rdfs:comment ?comment}
-  minus
-  {
-  ?uri ''' + x + ''' .
-  values ?uri {''' + uris + ''' }
-    }
-  }
-limit 3'''
-    return [row for row in graph.select(query)]
-
-
 def wrap(line, prefix=""):
     line = line.split()
     n = 0
     result = ""
     for word in line:
-        if n >= 80:
+        if n >= 160:
             result += '\n'
             n = 0
         if n == 0:
@@ -164,85 +27,122 @@ def wrap(line, prefix=""):
     return result
 
 
+class FeatureStats:
+    def __init__(self):
+        self._data = {}
+
+    def add(self, key, pos_hits, positive, neg_hits, negative):
+        args = (pos_hits, positive, neg_hits, negative, 1)
+        if key not in self._data:
+            self._data[key] = [0, 0, 0, 0, 0]
+        assert len(self._data[key]) == len(args)
+        for i in range(len(args)):
+            self._data[key][i] += args[i]
+        return self._data[key]
+
+    def __str__(self):
+        return str(self._data)
+
+    def __repr__(self):
+        return repr(self._data)
+
+
+def simulate_user(target, questions):
+    result = []
+    for n, ex in enumerate(questions):
+        if ex['uri'] in target:
+            result.append(str(n + 1))
+    result = " ".join(result)
+    print("Selected:", result)
+    return result
+
+
+def evaluate(graph, query, target):
+    tp = 0
+    fp = 0
+    missing = target.copy()
+    unexpected = []
+    for row in graph.select(query):
+        if row['uri'] in target:
+            tp += 1
+            del missing[missing.index(row['uri'])]
+        else:
+            fp += 1
+            unexpected.append(row['uri'])
+    prec = tp / (tp + fp)
+    recall = tp / len(target)
+    return {'prec': prec, 'recall': recall, 'f1': 2 / (1 / prec + 1 / recall), 'missing': missing,
+            'unexpected': unexpected}
+
+
 def main():
     graph = SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql')
-    # positive = urize(['http://dbpedia.org/resource/Buzz_Aldrin',
-    #                   'http://dbpedia.org/resource/Michael_Collins_(astronaut)',
-    #                   'http://dbpedia.org/resource/Neil_Armstrong'
-    #                   ])
-    # negative = urize([
-    #     'http://dbpedia.org/resource/J._R._R._Tolkien'
-    # ])
     # european capitals
+    target = urize([
+        'http://dbpedia.org/resource/Athens',
+        'http://dbpedia.org/resource/Budapest',
+        'http://dbpedia.org/resource/Vienna',
+        'http://dbpedia.org/resource/Brussels',
+        'http://dbpedia.org/resource/Sofia',
+        'http://dbpedia.org/resource/Zagreb',
+        'http://dbpedia.org/resource/Nicosia',
+        'http://dbpedia.org/resource/Prague',
+        'http://dbpedia.org/resource/Copenhagen',
+        'http://dbpedia.org/resource/Tallinn',
+        'http://dbpedia.org/resource/Helsinki',
+        'http://dbpedia.org/resource/Paris',
+        'http://dbpedia.org/resource/Berlin',
+        'http://dbpedia.org/resource/Dublin',
+        'http://dbpedia.org/resource/Rome',
+        'http://dbpedia.org/resource/Riga',
+        'http://dbpedia.org/resource/Vilnius',
+        'http://dbpedia.org/resource/Luxembourg_(city)',
+        'http://dbpedia.org/resource/Valletta',
+        'http://dbpedia.org/resource/Amsterdam',
+        'http://dbpedia.org/resource/Warsaw',
+        'http://dbpedia.org/resource/Lisbon',
+        'http://dbpedia.org/resource/Bucharest',
+        'http://dbpedia.org/resource/Bratislava',
+        'http://dbpedia.org/resource/Ljubljana',
+        'http://dbpedia.org/resource/Madrid',
+        'http://dbpedia.org/resource/Stockholm',
+        'http://dbpedia.org/resource/London',
+    ])
     positive = urize(['http://dbpedia.org/resource/Warsaw',
-                      'http://dbpedia.org/resource/Berlin'])
-    negative = urize(['http://dbpedia.org/resource/New_York_City'])
-    fn = "last.pickle.gz"
-    try:
-        with gzip.open(fn, 'rb') as f:
-            positive, negative = pickle.load(f)
-            print("+", " ".join([uri.n3() for uri in positive]))
-            print("-", " ".join([uri.n3() for uri in negative]))
-    except:
-        pass
-    prefix = []
-    while True:
-        with gzip.open(fn, 'wb') as f:
-            pickle.dump([positive, negative], f)
-        # pprint(positive)
-        # pprint(negative)
+                      'http://dbpedia.org/resource/Berlin',
+                      'http://dbpedia.org/resource/Zagreb',
+                      'http://dbpedia.org/resource/Nicosia',
+                      'http://dbpedia.org/resource/Vilnius'
+                      ])
+    negative = urize(['http://dbpedia.org/resource/Oslo'])
+    eng = Engine(graph, positive, negative)
+    ctr = FeatureStats()
+    while not eng.hypothesis_good_enough():
         print("================")
-        while True:
-            p, o = find_best_po(graph, positive, negative, prefix)
-            if p is None:
-                print("Fallback!")
-                p, o = find_best_po(graph, positive, [], prefix)
-                assert p is not None
-                prefix.append((p, o))
-                print(prefix)
-            else:
-                break
-        print(p, o)
-        examples = pick_examples(graph, p, o, positive, negative)
-        if len(examples) == 0:
-            break
-        for n, ex in enumerate(examples):
+        print("Current selectors:", eng.hypothesis)
+        eng.step()
+        for n, ex in enumerate(eng.ex_positive):
             print("{}. {}".format(n + 1, ex['uri']))
             if 'comment' in ex:
                 print(wrap(ex['comment'], "    "))
-        new_positive = input('positive> ')
-        new_positive = [int(item) - 1 for item in new_positive.split()]
-        for n, ex in enumerate(examples):
-            uri = ex['uri']
-            if n in new_positive:
-                positive.append(uri)
-                try:
-                    del negative[negative.index(uri)]
-                except:
-                    pass
+        for n, ex in enumerate(eng.ex_negative):
+            print("{}. {}".format(n + 1 + len(eng.ex_positive), ex['uri']))
+            if 'comment' in ex:
+                print(wrap(ex['comment'], "    "))
+        # new_positive = input('positive> ')
+        new_positive = simulate_user(target, itertools.chain(eng.ex_positive, eng.ex_negative))
+        new_positive = [int(item) for item in new_positive.split()]
+        labels = []
+        for n in range(0, len(eng.ex_positive) + len(eng.ex_negative)):
+            if n + 1 in new_positive:
+                labels.append(True)
             else:
-                negative.append(uri)
-                try:
-                    del positive[positive.index(uri)]
-                except:
-                    pass
+                labels.append(False)
+        eng.label_examples(labels[:len(eng.ex_positive)], labels[len(eng.ex_positive):])
     print("I'm done for!")
-
-
-# q = """
-#     select distinct ?p
-# where
-# {
-#   ?s ?p ?o.
-#   values ?s {
-#                       <http://dbpedia.org/resource/Michael_Collins_(astronaut)>
-#                       <http://dbpedia.org/resource/Neil_Armstrong>
-#   }
-# }
-# limit 10
-# """
-#     for row in graph.select(q):
-#         print(row)
+    q = eng.final_query()
+    print(q)
+    pprint(evaluate(graph, q, target))
 
 
 if __name__ == '__main__':
