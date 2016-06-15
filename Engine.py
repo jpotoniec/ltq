@@ -281,11 +281,14 @@ class Engine:
                 self.ex_positive, self.ex_negative = self.new_examples()
                 if len(self.ex_positive) > 0 and len(self.ex_negative) > 0:
                     return
-                while len(self.hypothesis) > 0:
+                while True:
                     print("Can not find new examples")
                     self.hypothesis = self.hypothesis[:-1]
-                    p, n = self.new_examples()
-                    if len(p) > 0 and len(n) > 0:
+                    if len(self.hypothesis) > 0:
+                        p, n = self.new_examples()
+                        if len(p) > 0 and len(n) > 0:
+                            break
+                    else:
                         break
             if len(self.hypothesis) > 0:
                 self.hypothesis = self.hypothesis[:-1]

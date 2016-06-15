@@ -5,11 +5,7 @@ from SparqlGraph import SparqlGraph
 from pprint import pprint
 
 
-def urize(strings):
-    result = []
-    for item in strings:
-        result.append(URIRef(item))
-    return result
+
 
 
 def wrap(line, prefix=""):
@@ -77,44 +73,7 @@ def evaluate(graph, query, target):
 
 def main():
     graph = SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql')
-    # european capitals
-    target = urize([
-        'http://dbpedia.org/resource/Athens',
-        'http://dbpedia.org/resource/Budapest',
-        'http://dbpedia.org/resource/Vienna',
-        'http://dbpedia.org/resource/Brussels',
-        'http://dbpedia.org/resource/Sofia',
-        'http://dbpedia.org/resource/Zagreb',
-        'http://dbpedia.org/resource/Nicosia',
-        'http://dbpedia.org/resource/Prague',
-        'http://dbpedia.org/resource/Copenhagen',
-        'http://dbpedia.org/resource/Tallinn',
-        'http://dbpedia.org/resource/Helsinki',
-        'http://dbpedia.org/resource/Paris',
-        'http://dbpedia.org/resource/Berlin',
-        'http://dbpedia.org/resource/Dublin',
-        'http://dbpedia.org/resource/Rome',
-        'http://dbpedia.org/resource/Riga',
-        'http://dbpedia.org/resource/Vilnius',
-        'http://dbpedia.org/resource/Luxembourg_(city)',
-        'http://dbpedia.org/resource/Valletta',
-        'http://dbpedia.org/resource/Amsterdam',
-        'http://dbpedia.org/resource/Warsaw',
-        'http://dbpedia.org/resource/Lisbon',
-        'http://dbpedia.org/resource/Bucharest',
-        'http://dbpedia.org/resource/Bratislava',
-        'http://dbpedia.org/resource/Ljubljana',
-        'http://dbpedia.org/resource/Madrid',
-        'http://dbpedia.org/resource/Stockholm',
-        'http://dbpedia.org/resource/London',
-    ])
-    positive = urize(['http://dbpedia.org/resource/Warsaw',
-                      'http://dbpedia.org/resource/Berlin',
-                      'http://dbpedia.org/resource/Zagreb',
-                      'http://dbpedia.org/resource/Nicosia',
-                      'http://dbpedia.org/resource/Vilnius'
-                      ])
-    negative = urize(['http://dbpedia.org/resource/Oslo'])
+
     eng = Engine(graph, positive, negative)
     ctr = FeatureStats()
     while not eng.hypothesis_good_enough():
