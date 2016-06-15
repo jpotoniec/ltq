@@ -92,7 +92,9 @@ class Engine:
         }}
         '''.format_map(self._args())
         for row in self.graph.select(query):
-            yield POSelector(row['p'], row['o'])
+            s = POSelector(row['p'], row['o'])
+            if s not in self.hypothesis:
+                yield s
         # po = []
         # for row in self.graph.select(query):
         #     print(row)
