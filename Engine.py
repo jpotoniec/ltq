@@ -94,32 +94,7 @@ class Engine:
         for row in self.graph.select(query):
             s = POSelector(row['p'], row['o'])
             if s not in self.hypothesis:
-                yield s
-        # po = []
-        # for row in self.graph.select(query):
-        #     print(row)
-        #     po.append('({} {})'.format(row['p'].n3(), row['o'].n3()))
-        # args = self._args()
-        # args['po'] = " ".join(po)
-        # query = '''
-        # select ?p ?o (count(distinct ?s) as ?measure)
-        # where
-        # {{
-        #     {s_selector}
-        #     ?s ?p ?o .
-        #     values (?p ?o) {{ {po} }}
-        # }}
-        # group by ?p ?o
-        # having (?measure > 0)
-        # order by asc(?measure)
-        # '''.format_map(args)
-        # print(query)
-        # for row in self.graph.select(query):
-        #     s = POSelector(row['p'], row['o'])
-        #     if s not in self.hypothesis:
-        #         # print(row)
-        #         return s, None  # (row['tp'].value, row['fp'].value, row['measure'].value)
-        # return None
+                yield s, row['measure']
 
     def sp(self):
         query = '''
@@ -153,7 +128,7 @@ class Engine:
             s = SPSelector(row['o'], row['p'])
             if s not in self.hypothesis:
                 # print(row)
-                yield s
+                yield s, row['measure']
 
     def comp(self):
         args = self._args()
@@ -203,7 +178,7 @@ class Engine:
                 s = FilterOpSelector(row['p'], op, row['l'])
                 if s not in self.hypothesis:
                     # print(row)
-                    yield s
+                    yield s, row['measure']
 
     def _new_examples(self, base, new_selector: Selector):
         args = {
@@ -239,8 +214,6 @@ class Engine:
         return query
 
     def hypothesis_good_enough(self):
-        if len(self.positive) < 10 or len(self.negative) < 10:
-            return False
         query = '''
             select distinct (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
             where
@@ -294,7 +267,10 @@ class Engine:
                 raise Exception("I can not make an empty hypothesis even more general!")
         restarted = False
         while True:
-            for cand in itertools.chain(self.po(), self.sp(), self.comp()):
+            candidates = sorted(itertools.chain(self.po(), self.sp(), self.comp()), key=lambda x: -x[1].value)
+            print(candidates)
+            candidates = [cand[0] for cand in candidates]
+            for cand in candidates:
                 self.hypothesis.append(cand)
                 print("#positive = {} #negative = {}".format(len(self.positive), len(self.negative)))
                 print("Refined hypothesis is:")
@@ -321,22 +297,3 @@ class Engine:
                     raise Exception("Uh-huh, and what now?")
                 else:
                     restarted = True
-        # if self.hypothesis_cm.fp > 0 or len(self.hypothesis) == 0:
-        #     self._refine_hypothesis()
-        # while True:
-        #     if len(self.hypothesis) == 0:
-        #         self._refine_hypothesis()
-        #     print("#positive = {} #negative = {}".format(len(self.positive), len(self.negative)))
-        #     print("Refined hypothesis is:")
-        #     for item in self.hypothesis:
-        #         print("\t", item)
-        #     self.ex_positive, self.ex_negative = self.new_examples()
-        #     if len(self.ex_positive) == 0 or len(self.ex_negative) == 0:
-        #         print("Can not find new examples")
-        #         if len(self.hypothesis) > 0:
-        #             self.hypothesis = self.hypothesis[:-1]
-        #         else:
-        #             raise Exception("Can not find new examples")
-        #         print("Hypothesis contains {} items".format(len(self.hypothesis)))
-        #     else:
-        #         break

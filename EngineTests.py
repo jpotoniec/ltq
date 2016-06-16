@@ -88,9 +88,11 @@ class EngineTests(unittest.TestCase):
                     'http://dbpedia.org/resource/Berlin',
                     'http://dbpedia.org/resource/Zagreb',
                     'http://dbpedia.org/resource/Nicosia',
-                    'http://dbpedia.org/resource/Vilnius'
+                    'http://dbpedia.org/resource/Vilnius',
+                    'http://dbpedia.org/resource/Stockholm'
                     ]
-        negative = ['http://dbpedia.org/resource/Oslo']
+        negative = ['http://dbpedia.org/resource/Oslo', 'http://dbpedia.org/resource/Vatican_City',
+                    'http://dbpedia.org/resource/European_Capital_of_Culture', 'http://dbpedia.org/resource/Ankara']
         result = run(positive, negative, target)
         self.assertAlmostEqual(result['f1'], 1)
 
@@ -128,6 +130,7 @@ class EngineTests(unittest.TestCase):
         ])
         result = run(positive, negative, target)
         self.assertAlmostEqual(result['f1'], 1)
+
 
 # miasta mające powyżej 20000 os/km2 wg https://en.wikipedia.org/wiki/List_of_cities_by_population_density
 # nie działa, bo w dbpedii nie ma takich danych, np http://dbpedia.org/resource/L'Hospitalet_de_Llobregat ma jako density wpisane auto, bo wikipedia je sama wylicza
