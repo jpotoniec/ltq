@@ -6,13 +6,13 @@ function get(path, cb) {
     $.get('http://localhost:23456/' + path, cb);
 }
 
-function display_examples_helper(data, target) {
+function display_examples_helper(data, target, cb) {
     var ul = $('<ul>');
     for (var i = 0; i < data.length; ++i) {
         var a = $('<a>').text(data[i]);
         a.attr('href', data[i]);
         var rm = $('<a>').append($('<span>').addClass('glyphicon glyphicon-remove'));
-        rm.click({'example': data[i]}, remove_example);
+        rm.click({'example': data[i]}, cb);
         ul.prepend($('<li>').append(a).append(rm));
     }
     target.empty();
@@ -22,9 +22,9 @@ function display_examples_helper(data, target) {
 function display_state(data) {
     console.log(data);
     if ('positive' in data)
-        display_examples_helper(data['positive'], $('#positive'));
+        display_examples_helper(data['positive'], $('#positive'), remove_example);
     if ('negative' in data)
-        display_examples_helper(data['negative'], $('#negative'));
+        display_examples_helper(data['negative'], $('#negative'), remove_example);
 }
 
 function add_positive() {
@@ -81,6 +81,7 @@ function set_label(data) {
 }
 
 function submit_labels(data) {
+    $('#new_examples_panel').hide();
     $('#new_examples').empty();
     data = data['data'];
     //console.log(data.labels);
@@ -90,6 +91,7 @@ function submit_labels(data) {
 
 function display_new_examples(data) {
     console.log(data);
+    $('#new_examples_panel').show();
     var new_examples = data['new_positive'].concat(data['new_negative']);
     var target = $('#new_examples');
     target.empty();
@@ -119,14 +121,36 @@ function display_new_examples(data) {
     btn.attr('disabled', '');
     btn.off('click');
     btn.click({'labels': labels}, submit_labels);
+
+}
+
+function step_callback(data) {
+    console.log(data);
+    var btn = $('#submit_labels');
+    btn.attr('disabled', '');
+    btn.off('click');
+    if ('new_positive' in data)
+        display_new_examples(data);
     if ('hypothesis' in data) {
         $('#hypothesis').text(data['hypothesis']);
         console.log(data['hypothesis']);
     }
+    if ('results' in data) {
+        $('#results_panel').show();
+        display_examples_helper(data['results'], $('#results'), function (event) {
+            call('add/negative', event['data'], display_state);
+        });
+    }
 }
 
 function do_step() {
-    get('step', display_new_examples);
+    $('#new_examples_panel').hide();
+    $('#results_panel').hide();
+    get('step', step_callback);
 }
 
 $(document).ready(refresh_state);
+$(document).ready(function () {
+    $('#new_examples_panel').hide();
+    $('#results_panel').hide();
+});

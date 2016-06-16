@@ -33,28 +33,68 @@
     <div class="row">
         <div class="col-md-6">
             <button onclick="do_step();">Do step</button>
-            <table class="table">
-                <thead>
-                <tr>
-                    <td>Positive</td>
-                    <td>Negative</td>
-                    <td>Example</td>
-                </tr>
-                </thead>
-                <tbody id="new_examples">
+            <div id="new_examples_panel" class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Questions from the system</h3>
+                </div>
+                <div class="panel-body">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <td>Positive</td>
+                            <td>Negative</td>
+                            <td>Example</td>
+                        </tr>
+                        </thead>
+                        <tbody id="new_examples">
 
-                </tbody>
-            </table>
-            <button id="submit_labels" disabled>Submit labels</button>
-            <div>
-                <pre id="hypothesis"></pre>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="panel-footer">
+                    <button id="submit_labels" disabled>Submit labels</button>
+                </div>
+            </div>
+            <div id="results_panel" class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Results of the hypothesis</h3>
+                    I think I'm done.
+                    Below are the results of posing the hypothesis to the endpoint.
+                    If there is something that should not be there, click X to remove it
+                </div>
+                <div class="panel-body" id="results">
+                </div>
             </div>
         </div>
-        <div class="col-md-3" id="positive">
-
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Current hypothesis</h3>
+                </div>
+                <div class="panel-body">
+                    <pre id="hypothesis"></pre>
+                </div>
+            </div>
         </div>
-        <div class="col-md-3" id="negative">
-
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Should be included</h3>
+                </div>
+                <div class="panel-body" id="positive">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Should be excluded</h3>
+                </div>
+                <div class="panel-body" id="negative">
+                </div>
+            </div>
         </div>
     </div>
 </div>

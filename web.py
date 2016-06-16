@@ -62,8 +62,12 @@ class GetState(CORSHandler):
 
 class DoStep(CORSHandler):
     def get(self):
-        eng.step()
-        return {'new_positive': eng.ex_positive, 'new_negative': eng.ex_negative, 'hypothesis': eng.final_query()}
+        if not eng.hypothesis_good_enough():
+            eng.step()
+            return {'new_positive': eng.ex_positive, 'new_negative': eng.ex_negative, 'hypothesis': eng.final_query()}
+        else:
+            results = [row['uri'] for row in eng.graph.select(eng.final_query())]
+            return {'results': list(results), 'hypothesis': eng.final_query()}
 
 
 class AssignLabels(CORSHandler):
