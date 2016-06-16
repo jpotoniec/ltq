@@ -4,8 +4,9 @@ from wsgiref.simple_server import make_server
 from Engine import Engine
 from rdflib import URIRef
 from SparqlGraph import SparqlGraph
+import uuid
 
-eng = Engine(SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql'), [], [])
+engine_db = {}
 
 
 def engine_state(eng):
@@ -13,19 +14,24 @@ def engine_state(eng):
 
 
 class CORSHandler(Handler):
+    def _init_engine(self):
+        id = str(uuid.uuid4())
+        self.response.set_cookie('engine', id)
+        self.eng = Engine(SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql'), [], [])
+        engine_db[id] = self.eng
+
     def before(self):
-        self.response.set_header('Access-Control-Allow-Origin', '*')
+        global engine_db
+        print(self.request.cookies)
+        self.eng = None
+        if 'engine' in self.request.cookies:
+            id = self.request.cookies['engine']
+            if id in engine_db:
+                self.eng = engine_db[id]
+        if self.eng is None:
+            self._init_engine()
 
 
-class Hello(CORSHandler):
-    def get(self, name="World"):
-        return {"message": "Hello, %s!" % (name)}
-
-    def post(self, name=""):
-        ex = self.request.data.get('example')
-        if not ex:
-            raise HTTP_400('Uh-huh')
-        return self.get(ex)
 
 
 class AddExample(CORSHandler):
@@ -34,12 +40,12 @@ class AddExample(CORSHandler):
         if not ex:
             raise HTTP_400('`example` parameter required')
         ex = URIRef(ex)
-        if ex not in eng.positive and ex not in eng.negative:
+        if ex not in self.eng.positive and ex not in self.eng.negative:
             if target == 'positive':
-                eng.positive.append(ex)
+                self.eng.positive.append(ex)
             elif target == 'negative':
-                eng.negative.append(ex)
-        return engine_state(eng)
+                self.eng.negative.append(ex)
+        return engine_state(self.eng)
 
 
 class RemoveExample(CORSHandler):
@@ -48,26 +54,27 @@ class RemoveExample(CORSHandler):
         if not ex:
             raise HTTP_400('`example` parameter required')
         ex = URIRef(ex)
-        if ex in eng.positive:
-            del eng.positive[eng.positive.index(ex)]
-        if ex in eng.negative:
-            del eng.negative[eng.negative.index(ex)]
-        return engine_state(eng)
+        if ex in self.eng.positive:
+            del self.eng.positive[self.eng.positive.index(ex)]
+        if ex in self.eng.negative:
+            del self.eng.negative[self.eng.negative.index(ex)]
+        return engine_state(self.eng)
 
 
 class GetState(CORSHandler):
     def get(self):
-        return engine_state(eng)
+        return engine_state(self.eng)
 
 
 class DoStep(CORSHandler):
     def get(self):
-        if not eng.hypothesis_good_enough():
-            eng.step()
-            return {'new_positive': eng.ex_positive, 'new_negative': eng.ex_negative, 'hypothesis': eng.final_query()}
+        if not self.eng.hypothesis_good_enough():
+            self.eng.step()
+            return {'new_positive': self.eng.ex_positive, 'new_negative': self.eng.ex_negative,
+                    'hypothesis': self.eng.final_query()}
         else:
-            results = [row['uri'] for row in eng.graph.select(eng.final_query())]
-            return {'results': list(results), 'hypothesis': eng.final_query()}
+            results = [row['uri'] for row in self.eng.graph.select(self.eng.final_query())]
+            return {'results': list(results), 'hypothesis': self.eng.final_query()}
 
 
 class AssignLabels(CORSHandler):
@@ -75,22 +82,20 @@ class AssignLabels(CORSHandler):
         labels = self.request.data.get('labels')
         if not labels:
             raise HTTP_400('`labels` parameter required')
-        if len(labels) != len(eng.ex_positive) + len(eng.ex_negative):
+        if len(labels) != len(self.eng.ex_positive) + len(self.eng.ex_negative):
             raise HTTP_400('`labels` has invalid length')
-        eng.label_examples(labels[:len(eng.ex_positive)], labels[len(eng.ex_positive):])
-        return engine_state(eng)
+        self.eng.label_examples(labels[:len(self.eng.ex_positive)], labels[len(self.eng.ex_positive):])
+        return engine_state(self.eng)
 
 
 class RestartEngine(CORSHandler):
     def get(self):
-        global eng
-        eng = Engine(SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql'), [], [])
+        self._init_engine()
         return {}
 
 
 class App(WSGI):
     routes = [
-        ('/', Hello()),
         ('/add/(positive|negative)', AddExample()),
         ('/remove', RemoveExample()),
         ('/state', GetState()),

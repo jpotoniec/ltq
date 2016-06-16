@@ -1,9 +1,9 @@
 function call(path, data, cb) {
-    $.post('http://localhost:23456/' + path, JSON.stringify(data), cb);
+    $.post('api/' + path, JSON.stringify(data), cb);
 }
 
 function get(path, cb) {
-    $.get('http://localhost:23456/' + path, cb);
+    $.get('api/' + path, cb);
 }
 
 function display_examples_helper(data, target, cb) {
