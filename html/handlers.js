@@ -47,6 +47,15 @@ function refresh_state() {
     get('state', display_state);
 }
 
+function load_example(positive, negative) {
+    for (var i = 0; i < positive.length; ++i) {
+        call('add/positive', {'example': positive[i]}, display_state);
+    }
+    for (var i = 0; i < negative.length; ++i) {
+        call('add/negative', {'example': negative[i]}, display_state);
+    }
+}
+
 function load_eu() {
     var positive = ['http://dbpedia.org/resource/Warsaw',
         'http://dbpedia.org/resource/Berlin',
@@ -55,12 +64,23 @@ function load_eu() {
         'http://dbpedia.org/resource/Vilnius'
     ];
     var negative = ['http://dbpedia.org/resource/Oslo'];
-    for (var i = 0; i < positive.length; ++i) {
-        call('add/positive', {'example': positive[i]}, display_state);
-    }
-    for (var i = 0; i < negative.length; ++i) {
-        call('add/negative', {'example': negative[i]}, display_state);
-    }
+    load_example(positive, negative)
+}
+
+function load_pl() {
+    var positive = ['http://dbpedia.org/resource/Gdańsk',
+        'http://dbpedia.org/resource/Kraków',
+        'http://dbpedia.org/resource/Lublin',
+        'http://dbpedia.org/resource/Poznań',
+        'http://dbpedia.org/resource/Toruń',
+        'http://dbpedia.org/resource/Bydgoszcz'
+    ];
+    var negative = [
+        'http://dbpedia.org/resource/Lesser_Poland_Voivodeship',
+        'http://dbpedia.org/resource/Silesian_Voivodeship',
+        'http://dbpedia.org/resource/Masuria'
+    ];
+    load_example(positive, negative)
 }
 
 function set_label(data) {
