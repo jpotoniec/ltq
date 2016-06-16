@@ -91,11 +91,12 @@ function set_label(data) {
     data.tr.toggleClass('success', data.label);
     data.tr.toggleClass('danger', !data.label);
     var enable = true;
-    for (var i = 0; i < data.length; ++i)
-        if (data[i] === undefined) {
+    for (var i = 0; i < data.target.length; ++i) {
+        if (data.target[i] === undefined) {
             enable = false;
             break;
         }
+    }
     if (enable)
         $('#submit_labels').removeAttr('disabled');
 }
@@ -134,7 +135,11 @@ function display_new_examples(data) {
         tr.addClass('warning');
         tr.append($('<td>').append(r1));
         tr.append($('<td>').append(r2));
-        tr.append($('<td>').text(new_examples[n].uri));
+        var a = $('<a>').attr('href', new_examples[n].uri).text(new_examples[n].uri);
+        console.log(new_examples[n]);
+        if ('comment' in new_examples[n])
+            a.attr('title', new_examples[n]['comment']);
+        tr.append($('<td>').append(a));
         target.append(tr);
     }
     var btn = $('#submit_labels');
@@ -169,8 +174,15 @@ function do_step() {
     get('step', step_callback);
 }
 
-$(document).ready(refresh_state);
-$(document).ready(function () {
+function restart() {
+    get('restart', init);
+}
+
+function init() {
+    refresh_state();
     $('#new_examples_panel').hide();
     $('#results_panel').hide();
-});
+    $('#hypothesis').text('');
+}
+
+$(document).ready(init);

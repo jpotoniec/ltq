@@ -22,29 +22,18 @@
 <div class="container">
     <div class="row">
         <div class="col-md-6">
-            <button onclick="load_eu();">Load EU</button>
-            <button onclick="load_pl();">Load PL</button>
-        </div>
-        <div class="col-md-6">
-            <input id="example">
-            <button id="add_positive" onclick="add_positive();">Add positive</button>
-            <button id="add_negative" onclick="add_negative();">Add negative</button>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-6">
-            <button onclick="do_step();">Do step</button>
             <div id="new_examples_panel" class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">Questions from the system</h3>
                 </div>
                 <div class="panel-body">
+                    For each URI below, please select if the URI should be included in the results or excluded from it.
                     <table class="table">
                         <thead>
                         <tr>
-                            <td>Positive</td>
-                            <td>Negative</td>
-                            <td>Example</td>
+                            <td>Include</td>
+                            <td>Exclude</td>
+                            <td>URI</td>
                         </tr>
                         </thead>
                         <tbody id="new_examples">
@@ -53,14 +42,18 @@
                     </table>
                 </div>
                 <div class="panel-footer">
-                    <button id="submit_labels" disabled>Submit labels</button>
+                    <div class="input-group">
+                        <div class="input-group-btn">
+                            <button class="btn btn-default" id="submit_labels" disabled>Submit answers</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="results_panel" class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Results of the hypothesis</h3>
+                    <h3 class="panel-title">Results of the query</h3>
                     I think I'm done.
-                    Below are the results of posing the hypothesis to the endpoint.
+                    Below are the results of posing the query to the endpoint.
                     If there is something that should not be there, click X to remove it
                 </div>
                 <div class="panel-body" id="results">
@@ -70,10 +63,18 @@
         <div class="col-md-6">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Current hypothesis</h3>
+                    <h3 class="panel-title">Current query</h3>
                 </div>
                 <div class="panel-body">
                     <pre id="hypothesis"></pre>
+                </div>
+                <div class="panel-footer">
+                    <div class="input-group">
+                        <div class="input-group-btn">
+                            <button class="btn btn-default" onclick="do_step();">Refine query</button>
+                            <button class="btn btn-default" onclick="restart();">Restart</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -82,7 +83,48 @@
         <div class="col-md-6">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Should be included</h3>
+                    <h3 class="panel-title">Examples</h3>
+                </div>
+                <div class="panel-body">
+                    Select one of the examples.
+                    It will load some URIs that should be included and should be excluded from the results.
+                    You can refine the URIs.
+                    When you are done click <i>Refine query</i>.
+                    <ul>
+                        <li>
+                            <a onclick="load_eu();">Capitals of the member states of EU</a>
+                        </li>
+                        <li>
+                            <a onclick="load_pl();">Polish cities having more than 200k citizens</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Add new elements</h3>
+                </div>
+                <div class="panel-body">
+                    Enter a URI to the field below and press one of the two buttons to the right.
+                    When you are done, click <i>Refine query</i>.
+                    <div class="input-group">
+                        <input class="form-control" id="example">
+                        <div class="input-group-btn">
+                            <button class="btn btn-default" id="add_positive" onclick="add_positive();">Include</button>
+                            <button class="btn btn-default" id="add_negative" onclick="add_negative();">Exclude</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Should be included in the results</h3>
                 </div>
                 <div class="panel-body" id="positive">
                 </div>
@@ -91,7 +133,7 @@
         <div class="col-md-6">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Should be excluded</h3>
+                    <h3 class="panel-title">Should be excluded from the results</h3>
                 </div>
                 <div class="panel-body" id="negative">
                 </div>

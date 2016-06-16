@@ -81,6 +81,13 @@ class AssignLabels(CORSHandler):
         return engine_state(eng)
 
 
+class RestartEngine(CORSHandler):
+    def get(self):
+        global eng
+        eng = Engine(SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql'), [], [])
+        return {}
+
+
 class App(WSGI):
     routes = [
         ('/', Hello()),
@@ -88,7 +95,8 @@ class App(WSGI):
         ('/remove', RemoveExample()),
         ('/state', GetState()),
         ('/step', DoStep()),
-        ('/labels', AssignLabels())
+        ('/labels', AssignLabels()),
+        ('/restart', RestartEngine())
     ]
 
 
