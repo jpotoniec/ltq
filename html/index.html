@@ -19,14 +19,44 @@
     <title>Title</title>
 </head>
 <body>
-<input id="example">
-<button id="add_positive" onclick="add_positive();">Add positive</button>
-<button id="add_negative" onclick="add_negative();">Add negative</button>
-<div id="positive">
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <button onclick="load_eu();">Load EU</button>
+        </div>
+        <div class="col-md-6">
+            <input id="example">
+            <button id="add_positive" onclick="add_positive();">Add positive</button>
+            <button id="add_negative" onclick="add_negative();">Add negative</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <button onclick="do_step();">Do step</button>
+            <table class="table">
+                <thead>
+                <tr>
+                    <td>Positive</td>
+                    <td>Negative</td>
+                    <td>Example</td>
+                </tr>
+                </thead>
+                <tbody id="new_examples">
 
-</div>
-<div id="negative">
+                </tbody>
+            </table>
+            <button id="submit_labels" disabled>Submit labels</button>
+            <div>
+                <pre id="hypothesis"></pre>
+            </div>
+        </div>
+        <div class="col-md-3" id="positive">
 
+        </div>
+        <div class="col-md-3" id="negative">
+
+        </div>
+    </div>
 </div>
 </body>
 </html>

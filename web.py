@@ -8,6 +8,10 @@ from SparqlGraph import SparqlGraph
 eng = Engine(SparqlGraph('https://semantic.cs.put.poznan.pl/blazegraph/sparql'), [], [])
 
 
+def engine_state(eng):
+    return {'positive': eng.positive, 'negative': eng.negative}
+
+
 class CORSHandler(Handler):
     def before(self):
         self.response.set_header('Access-Control-Allow-Origin', '*')
@@ -35,7 +39,7 @@ class AddExample(CORSHandler):
                 eng.positive.append(ex)
             elif target == 'negative':
                 eng.negative.append(ex)
-        return {'positive': eng.positive, 'negative': eng.negative}
+        return engine_state(eng)
 
 
 class RemoveExample(CORSHandler):
@@ -48,14 +52,39 @@ class RemoveExample(CORSHandler):
             del eng.positive[eng.positive.index(ex)]
         if ex in eng.negative:
             del eng.negative[eng.negative.index(ex)]
-        return {'positive': eng.positive, 'negative': eng.negative}
+        return engine_state(eng)
+
+
+class GetState(CORSHandler):
+    def get(self):
+        return engine_state(eng)
+
+
+class DoStep(CORSHandler):
+    def get(self):
+        eng.step()
+        return {'new_positive': eng.ex_positive, 'new_negative': eng.ex_negative, 'hypothesis': eng.final_query()}
+
+
+class AssignLabels(CORSHandler):
+    def post(self):
+        labels = self.request.data.get('labels')
+        if not labels:
+            raise HTTP_400('`labels` parameter required')
+        if len(labels) != len(eng.ex_positive) + len(eng.ex_negative):
+            raise HTTP_400('`labels` has invalid length')
+        eng.label_examples(labels[:len(eng.ex_positive)], labels[len(eng.ex_positive):])
+        return engine_state(eng)
 
 
 class App(WSGI):
     routes = [
         ('/', Hello()),
         ('/add/(positive|negative)', AddExample()),
-        ('/remove', RemoveExample())
+        ('/remove', RemoveExample()),
+        ('/state', GetState()),
+        ('/step', DoStep()),
+        ('/labels', AssignLabels())
     ]
 
 
