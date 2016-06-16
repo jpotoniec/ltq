@@ -40,11 +40,14 @@ class AddExample(CORSHandler):
         if not ex:
             raise HTTP_400('`example` parameter required')
         ex = URIRef(ex)
-        if ex not in self.eng.positive and ex not in self.eng.negative:
-            if target == 'positive':
-                self.eng.positive.append(ex)
-            elif target == 'negative':
-                self.eng.negative.append(ex)
+        if ex in self.eng.positive:
+            del self.eng.positive[self.eng.positive.index(ex)]
+        elif ex in self.eng.negative:
+            del self.eng.negative[self.eng.negative.index(ex)]
+        if target == 'positive':
+            self.eng.positive.append(ex)
+        elif target == 'negative':
+            self.eng.negative.append(ex)
         return engine_state(self.eng)
 
 
