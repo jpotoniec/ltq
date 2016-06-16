@@ -12,7 +12,7 @@ function display_examples_helper(data, target, cb) {
         var a = $('<a>').text(data[i]);
         a.attr('href', data[i]);
         var rm = $('<a>').append($('<span>').addClass('glyphicon glyphicon-remove'));
-        rm.click({'example': data[i]}, cb);
+        rm.click({'example': data[i], 'link': a}, cb);
         ul.prepend($('<li>').append(a).append(rm));
     }
     target.empty();
@@ -149,6 +149,15 @@ function display_new_examples(data) {
 
 }
 
+function remove_result(event) {
+    console.log(event);
+    if ('link' in event['data']) {
+        console.log(event['data']['link']);
+        event['data']['link'].css('text-decoration', 'line-through');
+    }
+    call('add/negative', event['data'], display_state);
+}
+
 function step_callback(data) {
     console.log(data);
     var btn = $('#submit_labels');
@@ -162,9 +171,7 @@ function step_callback(data) {
     }
     if ('results' in data) {
         $('#results_panel').show();
-        display_examples_helper(data['results'], $('#results'), function (event) {
-            call('add/negative', event['data'], display_state);
-        });
+        display_examples_helper(data['results'], $('#results'), remove_result);
     }
 }
 
