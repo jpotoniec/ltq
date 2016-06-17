@@ -5,6 +5,7 @@ from Engine import Engine
 from rdflib import URIRef
 from SparqlGraph import SparqlGraph
 import uuid
+import re
 
 engine_db = {}
 
@@ -32,13 +33,19 @@ class CORSHandler(Handler):
             self._init_engine()
 
 
-
-
 class AddExample(CORSHandler):
+    re_wiki = re.compile(r'^https?://(en.wikipedia.org/wiki/.*)$', re.I)
+
     def post(self, target):
         ex = self.request.data.get('example')
         if not ex:
             raise HTTP_400('`example` parameter required')
+        m = AddExample.re_wiki.match(ex)
+        if m is not None:
+            q = 'select ?uri where {{?uri <http://xmlns.com/foaf/0.1/isPrimaryTopicOf> <{}>. }} limit 1'.format(
+                'http://' + m.group(1))
+            for row in self.eng.graph.select(q):
+                ex = row['uri']
         ex = URIRef(ex)
         if ex in self.eng.positive:
             del self.eng.positive[self.eng.positive.index(ex)]
