@@ -1,8 +1,23 @@
+class Variable(str):
+    counter = 0
+
+    def __new__(cls, name=None):
+        if name is None:
+            Variable.counter += 1
+            return str.__new__(cls, "?anon{}".format(Variable.counter))
+        else:
+            return str.__new__(cls, name)
+
+    def n3(self):
+        return self
+
+
 class Selector:
-    placeholder = "?var"
+    placeholder = Variable("?var")
 
     def __init__(self, text):
         self._text = text
+        self._variables = []
 
     def get(self, var):
         return self._text.replace(Selector.placeholder, var)
@@ -21,25 +36,29 @@ class Selector:
     def __hash__(self):
         return hash(self._text)
 
+    @property
+    def variables(self):
+        return self._variables
 
-class POSelector(Selector):
-    def __init__(self, p, o):
-        super().__init__("{} {} {}.".format(Selector.placeholder, p.n3(), o.n3()))
 
-
-class SPSelector(Selector):
-    def __init__(self, s, p):
-        super().__init__("{} {} {}.".format(s.n3(), p.n3(), Selector.placeholder))
+class TriplePatternSelector(Selector):
+    def __init__(self, s, p, o):
+        super().__init__("{} {} {}.".format(s.n3(), p.n3(), o.n3()))
+        for x in (s, p, o):
+            if isinstance(x, Variable):
+                self._variables.append(x)
 
 
 class FilterOpSelector(Selector):
     counter = 0
 
-    def __init__(self, p, op, l):
+    def __init__(self, s, p, op, l):
         FilterOpSelector.counter += 1
         super().__init__(
-            "{0} {1} ?anon{2}. filter(?anon{2} {3} {4}).".format(Selector.placeholder, p.n3(), FilterOpSelector.counter,
-                                                                op, l.n3()))
+            "{0} {1} ?filter{2}. filter(?filter{2} {3} {4}).".format(s.n3(), p.n3(), FilterOpSelector.counter,
+                                                                     op, l.n3()))
+        if isinstance(s, Variable):
+            self._variables.append(s)
 
 
 class FilterNotExistsSelector(Selector):

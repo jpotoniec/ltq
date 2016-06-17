@@ -52,7 +52,13 @@ class Engine:
         return "({tp}/({tp}+{fp}) as ?precision) ({tp}/{n_pos} as ?recall) (2/((1/?precision)+(1/?recall)) as ?measure)".format_map(
             args)
 
-    def _args(self):
+    def _args(self, root):
+        if root == Selector.placeholder:
+            s_root = "?s"
+            t_root = "?t"
+        else:
+            s_root = root
+            t_root = root
         return {
             'positive': self._sparql_positive(),
             'negative': self._sparql_negative(),
@@ -60,43 +66,45 @@ class Engine:
             't_selector': self._sparql_selector('?t'),
             'n_pos': len(self.positive),
             'n_neg': len(self.negative),
-            'measure': self._sparql_measure()
+            'measure': self._sparql_measure(),
+            's_root': s_root,
+            't_root': t_root
         }
 
-    def po(self):
+    def p(self, root):
         query = '''
         select *
         where
         {{
             filter(?measure = max(?measure))
             {{
-                select distinct ?p ?o (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
+                select distinct ?p (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
                 where
                 {{
                     {{
                         {s_selector}
-                        ?s ?p ?o .
+                        {s_root} ?p [] .
                         values ?s {{ {positive} }}
                     }}
                     union
                     {{
                         {t_selector}
-                        ?t ?p ?o .
+                        {t_root} ?p [] .
                         values ?t {{ {negative} }}
                     }}
                 }}
-                group by ?p ?o
+                group by ?p
                 having (?measure > .5)
                 order by desc(?measure)
             }}
         }}
-        '''.format_map(self._args())
+        '''.format_map(self._args(root))
         for row in self.graph.select(query):
-            s = POSelector(row['p'], row['o'])
+            s = TriplePatternSelector(root, row['p'], Variable())
             if s not in self.hypothesis:
                 yield s, row['measure']
 
-    def sp(self):
+    def po(self, root):
         query = '''
         select *
         where
@@ -108,13 +116,13 @@ class Engine:
                 {{
                     {{
                         {s_selector}
-                        ?o ?p ?s .
+                        {s_root} ?p ?o .
                         values ?s {{ {positive} }}
                     }}
                     union
                     {{
                         {t_selector}
-                        ?o ?p ?t .
+                        {t_root} ?p ?o .
                         values ?t {{ {negative} }}
                     }}
                 }}
@@ -123,15 +131,49 @@ class Engine:
                 order by desc(?measure)
             }}
         }}
-        '''.format_map(self._args())
+        '''.format_map(self._args(root))
+        print(query)
         for row in self.graph.select(query):
-            s = SPSelector(row['o'], row['p'])
+            s = TriplePatternSelector(root, row['p'], row['o'])
+            if s not in self.hypothesis:
+                yield s, row['measure']
+
+    def sp(self, root):
+        query = '''
+        select *
+        where
+        {{
+            filter(?measure = max(?measure))
+            {{
+                select distinct ?p ?o (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
+                where
+                {{
+                    {{
+                        {s_selector}
+                        ?o ?p {s_root} .
+                        values ?s {{ {positive} }}
+                    }}
+                    union
+                    {{
+                        {t_selector}
+                        ?o ?p {t_root} .
+                        values ?t {{ {negative} }}
+                    }}
+                }}
+                group by ?p ?o
+                having (?measure > .5)
+                order by desc(?measure)
+            }}
+        }}
+        '''.format_map(self._args(root))
+        for row in self.graph.select(query):
+            s = TriplePatternSelector(row['o'], row['p'], root)
             if s not in self.hypothesis:
                 # print(row)
                 yield s, row['measure']
 
-    def comp(self):
-        args = self._args()
+    def comp(self, root):
+        args = self._args(root)
         for op in '<=', '>=':
             args['op'] = op
             query = '''
@@ -145,14 +187,14 @@ class Engine:
                         {{
                             {{
                                 {s_selector}
-                                ?s ?p ?xl.
+                                {s_root} ?p ?xl.
                                 values ?s {{ {positive} }}
                                 filter(isLiteral(?xl))
                             }}
                             union
                             {{
                                 {t_selector}
-                                ?t ?p ?xl.
+                                {t_root} ?p ?xl.
                                 values ?t {{ {negative} }}
                                 filter(isLiteral(?xl))
                             }}
@@ -162,7 +204,7 @@ class Engine:
                                 where
                                 {{
                                     {s_selector}
-                                    ?s ?p ?l.
+                                    {s_root} ?p ?l.
                                     values ?s {{ {positive} }}
                                     filter(isLiteral(?l))
                                 }}
@@ -175,7 +217,7 @@ class Engine:
             '''.format_map(args)
             # print(query)
             for row in self.graph.select(query):
-                s = FilterOpSelector(row['p'], op, row['l'])
+                s = FilterOpSelector(root, row['p'], op, row['l'])
                 if s not in self.hypothesis:
                     # print(row)
                     yield s, row['measure']
@@ -216,19 +258,19 @@ class Engine:
             {{
                 {{
                     {s_selector}
-                    ?s ?p ?o .
                     values ?s {{ {positive} }}
                 }}
                 union
                 {{
                     {t_selector}
-                    ?t ?p ?o .
                     values ?t {{ {negative} }}
                 }}
             }}
-        '''.format_map(self._args())
+        '''.format_map(self._args(Selector.placeholder))
         result = [row for row in self.graph.select(query)]
         assert len(result) == 1
+        if 'measure' not in result[0]:  # znaczy obliczenia sie nie powiodly
+            return False
         measure = result[0]['measure'].value
         # print(query)
         print("measure={}".format(measure))
@@ -255,6 +297,16 @@ class Engine:
                 self.hypothesis_cm.tn += 1.0 / n
         print(self.hypothesis_cm)
 
+    def _variables(self, source=None):
+        if source is None:
+            source = self.hypothesis
+        result = []
+        for x in source:
+            result += x.variables
+        if len(result) == 0:
+            result.append(Selector.placeholder)
+        return set(result)
+
     def step(self):
         if self.hypothesis_cm.fn > 0:
             if len(self.hypothesis) > 0:
@@ -263,8 +315,15 @@ class Engine:
                 raise Exception("I can not make an empty hypothesis even more general!")
         restarted = False
         while True:
-            candidates = sorted(itertools.chain(self.po(), self.sp(), self.comp()), key=lambda x: -x[1].value)
-            print(candidates)
+            print("Variables", self._variables())
+            candidates = []
+            for var in self._variables():
+                candidates += self.po(var)
+                candidates += self.sp(var)
+                candidates += self.comp(var)
+                candidates += self.p(var)
+            candidates = sorted(candidates, key=lambda x: -x[1].value)
+            pprint(candidates)
             candidates = [cand[0] for cand in candidates]
             for cand in candidates:
                 self.hypothesis.append(cand)
@@ -275,14 +334,14 @@ class Engine:
                 self.ex_positive, self.ex_negative = self.new_examples()
                 if self.hypothesis_good_enough():
                     return
-                if len(self.ex_positive) > 0:
+                if len(self.ex_positive) > 0 and len(self.ex_negative) > 0:
                     return
                 while True:
                     print("Can not find new examples")
                     self.hypothesis = self.hypothesis[:-1]
                     if len(self.hypothesis) > 0:
                         p, n = self.new_examples()
-                        if len(p) > 0:
+                        if len(p) > 0 and len(n) > 0:
                             break
                     else:
                         break
