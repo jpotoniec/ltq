@@ -5,7 +5,7 @@ class Selector:
         self._text = text
 
     def get(self, var):
-        return self._text.replace(Selector.placeholder, var) + "\n"
+        return self._text.replace(Selector.placeholder, var)
 
     def __str__(self):
         return repr(self)

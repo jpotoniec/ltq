@@ -29,7 +29,7 @@ class Engine:
         if what is None:
             what = self.hypothesis
         for item in what:
-            result += item.get(var)
+            result += "    " + item.get(var) + "\n"
         return result
 
     def _sparql_list(self, l, sep=" "):
@@ -206,11 +206,7 @@ class Engine:
         args = {
             'selector': self._sparql_selector('?uri'),
         }
-        query = '''select distinct ?uri
-        where {{
-            {selector}
-        }}
-        '''.format_map(args)
+        query = "select distinct ?uri\nwhere\n{{\n{selector}}}".format_map(args)
         return query
 
     def hypothesis_good_enough(self):
