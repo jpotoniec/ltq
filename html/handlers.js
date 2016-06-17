@@ -20,17 +20,31 @@ function display_examples_helper(data, target, cb) {
 }
 
 function display_state(data) {
-    console.log(data);
-    if ('positive' in data)
+    var n = 0;
+    if ('positive' in data) {
         display_examples_helper(data['positive'], $('#positive'), remove_example);
-    if ('negative' in data)
+        n += data['positive'].length;
+    }
+    if ('negative' in data) {
         display_examples_helper(data['negative'], $('#negative'), remove_example);
+        n += data['negative'].length;
+    }
+    if (n == 0)
+        enableRefine(false);
+}
+
+function enableRefine(state) {
+    if (state)
+        $('#refine_query_btn').removeAttr('disabled');
+    else
+        $('#refine_query_btn').attr('disabled', '');
 }
 
 function add_positive() {
     var data = {'example': $('#example').val()};
     call('add/positive', data, display_state);
     $('#example').val('');
+    enableRefine(true);
 }
 
 function add_negative() {
@@ -54,6 +68,7 @@ function load_example(positive, negative) {
     for (var i = 0; i < negative.length; ++i) {
         call('add/negative', {'example': negative[i]}, display_state);
     }
+    enableRefine(true);
 }
 
 function load_eu() {
@@ -146,7 +161,6 @@ function display_new_examples(data) {
     btn.attr('disabled', '');
     btn.off('click');
     btn.click({'labels': labels}, submit_labels);
-
 }
 
 function remove_result(event) {
@@ -159,7 +173,7 @@ function remove_result(event) {
 }
 
 function step_callback(data) {
-    console.log(data);
+    enableRefine(true);
     var btn = $('#submit_labels');
     btn.attr('disabled', '');
     btn.off('click');
@@ -176,6 +190,7 @@ function step_callback(data) {
 }
 
 function do_step() {
+    enableRefine(false);
     $('#new_examples_panel').hide();
     $('#results_panel').hide();
     get('step', step_callback);
@@ -187,6 +202,7 @@ function restart() {
 
 function init() {
     refresh_state();
+    enableRefine(false);
     $('#new_examples_panel').hide();
     $('#results_panel').hide();
     $('#hypothesis').text('');
