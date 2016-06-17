@@ -1,0 +1,12 @@
+li.resource
+{
+    display: block;
+}
+.resource-group
+{
+    padding-left: 0px;
+}
+.remove-icon
+{
+    padding-right: .4em;
+}

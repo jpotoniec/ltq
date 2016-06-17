@@ -7,13 +7,13 @@ function get(path, cb) {
 }
 
 function display_examples_helper(data, target, cb) {
-    var ul = $('<ul>');
+    var ul = $('<ul>').addClass('resource-group');
     for (var i = 0; i < data.length; ++i) {
         var a = $('<a>').text(data[i]);
         a.attr('href', data[i]);
-        var rm = $('<a>').append($('<span>').addClass('glyphicon glyphicon-remove'));
+        var rm = $('<a>').append($('<span>').addClass('glyphicon glyphicon-remove remove-icon'));
         rm.click({'example': data[i], 'link': a}, cb);
-        ul.prepend($('<li>').append(a).append(rm));
+        ul.prepend($('<li>').addClass('resource').append(rm).append(a));
     }
     target.empty();
     target.append(ul);
