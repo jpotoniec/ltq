@@ -209,31 +209,54 @@ class Engine:
                     # print(row)
                     yield s, row['measure']
 
-    def _new_examples(self, base, new_selector: Selector):
+    def _new_positive_examples(self):
         args = {
             'known': self._sparql_list(itertools.chain(self.positive, self.negative), sep=", "),
-            'selector': self._sparql_selector('?uri', base),
-            'new_selector': new_selector.get('?uri')
+            'selector': self.hypothesis.sparql(NamesGenerator('?uri', '?anon'))
         }
-        query = '''select distinct ?uri ?comment
-        where {{
-            {selector}
-            {new_selector}
-            optional {{?uri rdfs:comment ?comment}}
-            filter(?uri not in ({known}))
-        }}
-        limit 3
+        query = '''select ?uri ?comment
+                where {{
+                    {selector}
+                    filter(?uri not in ({known}))
+                    optional {{?uri rdfs:comment ?comment}}
+                }}
+                limit 3
+        '''.format_map(args)
+        return [row for row in self.graph.select(query)]
+
+    def _new_negative_examples(self):
+        selector = self.hypothesis[:-1].sparql(NamesGenerator('?uri', '?plus'))
+        if len(selector.strip()) == 0:
+            selector = '?uri ?p ?o.'
+        args = {
+            'known': self._sparql_list(itertools.chain(self.positive, self.negative), sep=", "),
+            'selector': selector,
+            'minus': self.hypothesis.sparql(NamesGenerator('?uri', '?minus')),
+        }
+        query = '''select ?uri ?comment
+                where {{
+                    {{
+                        {{
+                            {selector}
+                        }}
+                        minus
+                        {{
+                            {minus}
+                        }}
+                    }}
+                    filter(?uri not in ({known}))
+                    optional {{?uri rdfs:comment ?comment}}
+                }}
+                limit 3
         '''.format_map(args)
         return [row for row in self.graph.select(query)]
 
     def new_examples(self):
-        negative = FilterNotExistsSelector(self.hypothesis[-1])
-        return self._new_examples(self.hypothesis[:-1], self.hypothesis[-1]), \
-               self._new_examples(self.hypothesis[:-1], negative)
+        return self._new_positive_examples(), self._new_negative_examples()
 
     def final_query(self):
         args = {
-            'selector': self._sparql_selector('?uri'),
+            'selector': self.hypothesis.sparql(NamesGenerator('?uri', '?anon'))
         }
         query = "select distinct ?uri\nwhere\n{{\n{selector}}}".format_map(args)
         return query
