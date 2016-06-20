@@ -18,19 +18,10 @@ class Engine:
         self.graph = graph
         self.positive = positive
         self.negative = negative
-        self.hypothesis = []
-        self.history = []
+        self.hypothesis = Hypothesis()
         self.hypothesis_cm = ContingencyMatrix()
         self.ex_positive = None
         self.ex_negative = None
-
-    def _sparql_selector(self, var, what=None):
-        result = ""
-        if what is None:
-            what = self.hypothesis
-        for item in what:
-            result += "    " + item.get(var) + "\n"
-        return result
 
     def _sparql_list(self, l, sep=" "):
         return sep.join([item.n3() for item in l])
@@ -53,22 +44,18 @@ class Engine:
             args)
 
     def _args(self, root):
-        if root == Selector.placeholder:
-            s_root = "?s"
-            t_root = "?t"
-        else:
-            s_root = root
-            t_root = root
+        s_gen = NamesGenerator("?s", "?s_anon")
+        t_gen = NamesGenerator("?t", "?t_anon")
         return {
             'positive': self._sparql_positive(),
             'negative': self._sparql_negative(),
-            's_selector': self._sparql_selector('?s'),
-            't_selector': self._sparql_selector('?t'),
+            's_selector': self.hypothesis.sparql(s_gen),
+            't_selector': self.hypothesis.sparql(t_gen),
             'n_pos': len(self.positive),
             'n_neg': len(self.negative),
             'measure': self._sparql_measure(),
-            's_root': s_root,
-            't_root': t_root
+            's_root': s_gen[root],
+            't_root': t_gen[root]
         }
 
     def p(self, root):
@@ -338,16 +325,14 @@ class Engine:
                     return
                 while True:
                     print("Can not find new examples")
-                    self.hypothesis = self.hypothesis[:-1]
+                    self.hypothesis.pop()
                     if len(self.hypothesis) > 0:
                         p, n = self.new_examples()
                         if len(p) > 0 and len(n) > 0:
                             break
                     else:
                         break
-            if len(self.hypothesis) > 0:
-                self.hypothesis = self.hypothesis[:-1]
-            else:
+            if self.hypothesis.pop() is None:
                 if restarted:
                     raise Exception("Uh-huh, and what now?")
                 else:
