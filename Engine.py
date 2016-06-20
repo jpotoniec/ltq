@@ -1,6 +1,7 @@
 from Selector import *
 import itertools
-
+from random import Random
+from decimal import Decimal
 
 class ContingencyMatrix:
     def __init__(self):
@@ -22,6 +23,7 @@ class Engine:
         self.hypothesis_cm = ContingencyMatrix()
         self.ex_positive = None
         self.ex_negative = None
+        self.random = Random(0xbeef)
 
     def _sparql_list(self, l, sep=" "):
         return sep.join([item.n3() for item in l])
@@ -46,13 +48,22 @@ class Engine:
     def _args(self, root):
         s_gen = NamesGenerator("?s", "?s_anon")
         t_gen = NamesGenerator("?t", "?t_anon")
+        n = 30
+        if len(self.positive) <= n:
+            pos = self.positive
+        else:
+            pos = self.random.sample(self.positive, n)
+        if len(self.negative) <= n:
+            neg = self.negative
+        else:
+            neg = self.random.sample(self.negative, n)
         return {
-            'positive': self._sparql_positive(),
-            'negative': self._sparql_negative(),
+            'positive': self._sparql_list(pos),
+            'negative': self._sparql_list(neg),
             's_selector': self.hypothesis.sparql(s_gen),
             't_selector': self.hypothesis.sparql(t_gen),
-            'n_pos': len(self.positive),
-            'n_neg': len(self.negative),
+            'n_pos': len(pos),
+            'n_neg': len(neg),
             'measure': self._sparql_measure(),
             's_root': s_gen[root],
             't_root': t_gen[root]
