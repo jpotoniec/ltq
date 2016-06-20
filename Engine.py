@@ -34,17 +34,6 @@ class Engine:
     def _sparql_negative(self, sep=" "):
         return self._sparql_list(self.negative, sep)
 
-    def _sparql_measure(self, tp="?tp", fp="?fp"):
-        args = {
-            'tp': tp,
-            'fp': fp,
-            'n_pos': len(self.positive),
-            'n_neg': len(self.negative)
-        }
-        # return "({tp}/{n_pos}-{fp}/{n_neg} as ?measure)".format_map(args)
-        return "({tp}/({tp}+{fp}) as ?precision) ({tp}/{n_pos} as ?recall) (2/((1/?precision)+(1/?recall)) as ?measure)".format_map(
-            args)
-
     def _args(self, root):
         s_gen = NamesGenerator("?s", "?s_anon")
         t_gen = NamesGenerator("?t", "?t_anon")
@@ -57,17 +46,21 @@ class Engine:
             neg = self.negative
         else:
             neg = self.random.sample(self.negative, n)
-        return {
+        args = {
             'positive': self._sparql_list(pos),
             'negative': self._sparql_list(neg),
             's_selector': self.hypothesis.sparql(s_gen),
             't_selector': self.hypothesis.sparql(t_gen),
             'n_pos': len(pos),
             'n_neg': len(neg),
-            'measure': self._sparql_measure(),
             's_root': s_gen[root],
-            't_root': t_gen[root]
+            't_root': t_gen[root],
+            'tp': '?tp',
+            'fp': '?fp'
         }
+        args['measure'] = "({tp}/({tp}+{fp}) as ?precision) ({tp}/{n_pos} as ?recall) (2/((1/?precision)+(1/?recall)) as ?measure)".format_map(
+            args)
+        return args
 
     def p(self, root):
         query = '''
