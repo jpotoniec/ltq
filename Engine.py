@@ -17,8 +17,8 @@ class ContingencyMatrix:
 class Engine:
     def __init__(self, graph, positive, negative):
         self.graph = graph
-        self.positive = positive
-        self.negative = negative
+        self.positive = set(positive)
+        self.negative = set(negative)
         self.hypothesis = Hypothesis()
         self.hypothesis_cm = ContingencyMatrix()
         self.ex_positive = None
@@ -297,17 +297,17 @@ class Engine:
         n = len(lab_positive) + len(lab_negative)
         for ex, label in zip(self.ex_positive, lab_positive):
             if label:
-                self.positive.append(ex['uri'])
+                self.positive.add(ex['uri'])
                 self.hypothesis_cm.tp += 1.0 / n
             else:
-                self.negative.append(ex['uri'])
+                self.negative.add(ex['uri'])
                 self.hypothesis_cm.fp += 1.0 / n
         for ex, label in zip(self.ex_negative, lab_negative):
             if label:
-                self.positive.append(ex['uri'])
+                self.positive.add(ex['uri'])
                 self.hypothesis_cm.fn += 1.0 / n
             else:
-                self.negative.append(ex['uri'])
+                self.negative.add(ex['uri'])
                 self.hypothesis_cm.tn += 1.0 / n
         print(self.hypothesis_cm)
 
