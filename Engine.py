@@ -55,6 +55,7 @@ class Engine:
             'n_neg': len(neg),
             's_root': s_gen[root],
             't_root': t_gen[root],
+            'having': '?recall >= .99',
             'tp': '?tp',
             'fp': '?fp'
         }
@@ -64,11 +65,6 @@ class Engine:
 
     def p(self, root):
         query = '''
-        select *
-        where
-        {{
-            filter(?measure = max(?measure))
-            {{
                 select distinct ?p (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
                 where
                 {{
@@ -85,23 +81,15 @@ class Engine:
                     }}
                 }}
                 group by ?p
-                having (?measure > .5)
-                order by desc(?measure)
-            }}
-        }}
+                having ({having})
         '''.format_map(self._args(root))
         for row in self.graph.select(query):
             s = TriplePatternSelector(root, row['p'], Variable())
             if s not in self.hypothesis:
-                yield s, row['measure']
+                yield s, row
 
     def po(self, root):
         query = '''
-        select *
-        where
-        {{
-            filter(?measure = max(?measure))
-            {{
                 select distinct ?p ?o (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
                 where
                 {{
@@ -118,24 +106,17 @@ class Engine:
                     }}
                 }}
                 group by ?p ?o
-                having (?measure > .5)
+                having ({having})
                 order by desc(?measure)
-            }}
-        }}
         '''.format_map(self._args(root))
         print(query)
         for row in self.graph.select(query):
             s = TriplePatternSelector(root, row['p'], row['o'])
             if s not in self.hypothesis:
-                yield s, row['measure']
+                yield s, row
 
     def sp(self, root):
         query = '''
-        select *
-        where
-        {{
-            filter(?measure = max(?measure))
-            {{
                 select distinct ?p ?o (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
                 where
                 {{
@@ -152,27 +133,20 @@ class Engine:
                     }}
                 }}
                 group by ?p ?o
-                having (?measure > .5)
+                having ({having})
                 order by desc(?measure)
-            }}
-        }}
         '''.format_map(self._args(root))
         for row in self.graph.select(query):
             s = TriplePatternSelector(row['o'], row['p'], root)
             if s not in self.hypothesis:
                 # print(row)
-                yield s, row['measure']
+                yield s, row
 
     def comp(self, root):
         args = self._args(root)
         for op in '<=', '>=':
             args['op'] = op
             query = '''
-                select ?p ?l ?measure
-                where
-                {{
-                    filter(?measure=max(?measure))
-                    {{
                         select distinct ?p ?l (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
                         where
                         {{
@@ -202,16 +176,14 @@ class Engine:
                             }}
                         }}
                         group by ?p ?l
-                        having (?measure > .5)
-                    }}
-                }}
+                        having ({having})
             '''.format_map(args)
             # print(query)
             for row in self.graph.select(query):
                 s = FilterOpSelector(root, row['p'], op, row['l'])
                 if s not in self.hypothesis:
                     # print(row)
-                    yield s, row['measure']
+                    yield s, row
 
     def _new_positive_examples(self):
         args = {
@@ -265,7 +237,7 @@ class Engine:
         query = "select distinct ?uri\nwhere\n{{\n{selector}}}".format_map(args)
         return query
 
-    def hypothesis_good_enough(self):
+    def _hypothesis_quality(self):
         query = '''
             select distinct (count(distinct ?s) as ?tp) (count(distinct ?t) as ?fp) {measure}
             where
@@ -284,11 +256,14 @@ class Engine:
         result = [row for row in self.graph.select(query)]
         assert len(result) == 1
         if 'measure' not in result[0]:  # znaczy obliczenia sie nie powiodly
-            return False
-        measure = result[0]['measure'].value
-        # print(query)
-        print("measure={}".format(measure))
-        return measure > .99
+            return 0
+        else:
+            return result[0]['measure'].value
+
+    def hypothesis_good_enough(self):
+        m = self._hypothesis_quality()
+        print("hypotesis quality", m)
+        return m > .99
 
     def label_examples(self, lab_positive, lab_negative):
         self.hypothesis_cm = ContingencyMatrix()
@@ -343,7 +318,7 @@ class Engine:
                 candidates += self.sp(var)
                 candidates += self.comp(var)
                 candidates += self.p(var)
-            candidates = sorted(candidates, key=lambda x: -x[1].value)
+            candidates = sorted(candidates, key=lambda x: (x[1]['measure'].value, x[1]['precision'].value), reverse=True)
             pprint(candidates)
             candidates = [cand[0] for cand in candidates]
             for cand in candidates:
