@@ -109,7 +109,6 @@ class Engine:
                 having ({having})
                 order by desc(?measure)
         '''.format_map(self._args(root))
-        print(query)
         for row in self.graph.select(query):
             s = TriplePatternSelector(root, row['p'], row['o'])
             if s not in self.hypothesis:
@@ -139,7 +138,6 @@ class Engine:
         for row in self.graph.select(query):
             s = TriplePatternSelector(row['o'], row['p'], root)
             if s not in self.hypothesis:
-                # print(row)
                 yield s, row
 
     def comp(self, root):
@@ -178,11 +176,9 @@ class Engine:
                         group by ?p ?l
                         having ({having})
             '''.format_map(args)
-            # print(query)
             for row in self.graph.select(query):
                 s = FilterOpSelector(root, row['p'], op, row['l'])
                 if s not in self.hypothesis:
-                    # print(row)
                     yield s, row
 
     def _new_positive_examples(self):
@@ -319,7 +315,6 @@ class Engine:
                 candidates += self.comp(var)
                 candidates += self.p(var)
             candidates = sorted(candidates, key=lambda x: (x[1]['measure'].value, x[1]['precision'].value), reverse=True)
-            pprint(candidates)
             candidates = [cand[0] for cand in candidates]
             for cand in candidates:
                 self.hypothesis.append(cand)
