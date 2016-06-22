@@ -70,7 +70,7 @@ def select_queries():
                     print(q, file=f)
                     n += 1
                     print(n)
-                    if n >= 5:
+                    if n >= 50:
                         break
             except urllib.error.HTTPError as e:
                 pass
