@@ -93,6 +93,18 @@ def benchmark(q):
             break
     return log
 
+def load_failed_queries():
+    ok = set()
+    failed = set()
+    with open('log.json', 'rt') as f:
+        for line in f:
+            log = json.loads(line)
+            if 'exception' in log:
+                failed.add(log['query'])
+            else:
+                ok.add(log['query'])
+    return failed-ok
+
 
 def main():
     random.seed(12345)
