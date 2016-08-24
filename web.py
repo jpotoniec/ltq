@@ -11,7 +11,7 @@ engine_db = {}
 
 
 def engine_state(eng):
-    return {'positive': eng.positive, 'negative': eng.negative}
+    return {'positive': list(eng.positive), 'negative': list(eng.negative)}
 
 
 class CORSHandler(Handler):
@@ -48,13 +48,13 @@ class AddExample(CORSHandler):
                 ex = row['uri']
         ex = URIRef(ex)
         if ex in self.eng.positive:
-            del self.eng.positive[self.eng.positive.index(ex)]
+            self.eng.positive -= set(ex)
         elif ex in self.eng.negative:
-            del self.eng.negative[self.eng.negative.index(ex)]
+            self.eng.negative -= set(ex)
         if target == 'positive':
-            self.eng.positive.append(ex)
+            self.eng.positive.add(ex)
         elif target == 'negative':
-            self.eng.negative.append(ex)
+            self.eng.negative.add(ex)
         return engine_state(self.eng)
 
 
@@ -65,9 +65,9 @@ class RemoveExample(CORSHandler):
             raise HTTP_400('`example` parameter required')
         ex = URIRef(ex)
         if ex in self.eng.positive:
-            del self.eng.positive[self.eng.positive.index(ex)]
+            self.eng.positive -= set(ex)
         if ex in self.eng.negative:
-            del self.eng.negative[self.eng.negative.index(ex)]
+            self.eng.negative -= set(ex)
         return engine_state(self.eng)
 
 

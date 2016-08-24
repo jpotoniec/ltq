@@ -186,7 +186,7 @@ class Engine:
             'known': self._sparql_list(itertools.chain(self.positive, self.negative), sep=", "),
             'selector': self.hypothesis.sparql(NamesGenerator('?uri', '?anon'))
         }
-        query = '''select ?uri ?comment
+        query = '''select distinct ?uri ?comment
                 where {{
                     {selector}
                     filter(?uri not in ({known}))
@@ -205,7 +205,7 @@ class Engine:
             'selector': selector,
             'minus': self.hypothesis.sparql(NamesGenerator('?uri', '?minus')),
         }
-        query = '''select ?uri ?comment
+        query = '''select distinct ?uri ?comment
                 where {{
                     {{
                         {{
